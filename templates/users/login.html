@@ -1,0 +1,33 @@
+{% extends 'users/base.html' %}
+{% load static %}
+{% block content %}
+<div class="row w-100 mx-0">
+    <div class="col-lg-4 mx-auto">
+        <div class="auth-form-light text-left py-5 px-4 px-sm-5">
+            <h4>Chào mừng!</h4>
+            <h6 class="fw-light">Vui lòng nhập email để tiếp tục.</h6>
+            <form class="pt-3" method="POST" action="{% url 'email_redirect' %}">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger form-error" role="alert">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="form-group">
+                    {{ form.email }}
+                    <div class="form-error">{{ form.email.errors }}</div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-block btn-primary btn-lg font-weight-medium auth-form-btn">Tiếp tục</button>
+                </div>
+                <div class="mt-4 fw-light">
+                    Không có tài khoản? <a href="{% url 'register' %}" class="text-primary">Đăng ký</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}
