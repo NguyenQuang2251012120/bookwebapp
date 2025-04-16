@@ -97,7 +97,7 @@ DATABASES = {
         'NAME': 'quanlysach',  # Tên cơ sở dữ liệu
         'USER': 'postgres',  # Tên đăng nhập
         'PASSWORD': 'Quang123',  # Mật khẩu
-        'HOST': 'book-database.cpiziyom2hrl.us-east-1.rds.amazonaws.comgit',  # Mặc định là localhost
+        'HOST': 'book-database.cpiziyom2hrl.us-east-1.rds.amazonaws.com',  # Mặc định là localhost
         'PORT': '5432',
     }
 }

@@ -60,6 +60,7 @@ class Domain(DomainMixin):
     pass
 
 class Librarian(AbstractUser, AbstractBaseModel):
+    schema_name = models.CharField(max_length=100, null=True, blank=True)  # Schema của tenant
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=255, null=True, blank=True)
     database_name = models.CharField(max_length=255, null=True, blank=True)  # Thêm trường này
