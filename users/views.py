@@ -8,24 +8,44 @@ from users.models import Tenant, Domain
 from django_tenants.utils import schema_context
 from django.utils.text import slugify
 from .forms import EmailForm
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseForbidden, HttpResponse
+
+
+
+def tenant_view(request, tenant_name):
+    """
+    Xử lý request dynamic cho từng tenant dựa trên tenant_name.
+    """
+    # Kiểm tra schema tương ứng với tenant_name
+    tenant = get_object_or_404(Tenant, schema_name=tenant_name)
+
+    # Sử dụng schema_context để chuyển đổi schema trong database
+    with schema_context(tenant_name):
+        # Ví dụ: Render trang Home riêng cho mỗi tenant
+        return render(request, "tenant/home.html", {"tenant_name": tenant_name})
+
 
 
 def create_tenant_for_user(user):
-    # Chuyển đổi email thành định dạng slug để làm schema_name
-    schema_name = slugify(user.email.split('@')[0])  # Lấy phần trước dấu '@' của email
+    schema_name = slugify(user.email.split('@')[0])  # Lấy phần trước dấu '@'
 
-    tenant = Tenant(
-        schema_name=schema_name,
-        name=f"{user.first_name}'s Library",
-        owner=user,
-    )
-    tenant.save()
+    # Kiểm tra trùng tên schema
+    if Tenant.objects.filter(schema_name=schema_name).exists():
+        logger.error(f"Schema name already exists for {schema_name}.")
+        raise ValueError("Schema name already exists!")
 
-    domain = Domain(
-        domain=f"{schema_name}.localhost",
-        tenant=tenant,
-    )
-    domain.save()
+    try:
+        tenant = Tenant(
+            schema_name=schema_name,
+            name=f"{user.first_name}'s Library",
+            owner=user,
+        )
+        tenant.save()
+        logger.info(f"Tenant {schema_name} created successfully.")
+    except Exception as e:
+        logger.error(f"Failed to create tenant {schema_name}: {str(e)}")
+        raise ValueError("Failed to create tenant.")
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +78,9 @@ class LoginView(View):
             if user is not None:
                 login(request, user)
 
-                # Redirect to home page after login
-                return redirect("/")
+                # Chuyển hướng đến path của tenant dựa trên schema
+                schema_name = slugify(email.split('@')[0])  # Lấy schema từ email
+                return redirect(f"/{schema_name}/")  # URL dạng path routing
             form.add_error(None, "Invalid email or password")
 
         return render(request, "users/login1.html", {"form": form})
@@ -88,15 +109,16 @@ class RegisterView(View):
             user.set_password(password)
             user.save()
 
-            # Tạo schema cho người dùng mới đăng ký
+            # Tạo tenant mới
             create_tenant_for_user(user)
-
             logger.info(f"User {user.email} registered and tenant schema created.")
-            return redirect("login")
+
+            # Chuyển hướng đến trang của tenant
+            schema_name = slugify(user.email.split('@')[0])
+            return redirect(f"/{schema_name}/")  # Chuyển đến Home của tenant
         logger.warning(f"Invalid registration attempt: {form.errors}")
 
         return render(request, "users/register.html", {"form": form})
-
 
 class LogoutView(View):
     def get(self, request, *args, **kwargs):
@@ -122,13 +144,11 @@ class EmailRedirectView(View):
 
         if form.is_valid():
             email = form.cleaned_data.get("email")
-            schema_name = slugify(email.split('@')[0])  # Lấy phần đầu của email làm schema
+            schema_name = slugify(email.split('@')[0])  # Lấy schema từ email
             try:
-                # Tìm domain dựa trên schema của tenant
-                domain = Domain.objects.get(tenant__schema_name=schema_name)
-                # Chuyển hướng đến login1 và đính kèm email
-                return redirect(f"http://{domain.domain}:8000/login1/?email={email}")
-            except Domain.DoesNotExist:
+                # Chuyển hướng dựa trên path routing
+                return redirect(f"/{schema_name}/login1/?email={email}")
+            except Tenant.DoesNotExist:
                 form.add_error(None, "No tenant found for this email.")
                 return render(request, "users/login.html", {"form": form})
 

@@ -12,10 +12,6 @@ class DomainRestrictionMiddleware:
         path = request.path
         host = request.get_host().split(":")[0]  # Lấy domain mà không bao gồm port
 
-        # Nếu người dùng truy cập trang gốc "/", chuyển hướng đến "/login/"
-        if path == "/":
-            return redirect("/login/")
-
         # Cho phép truy cập vào login1 mà không cần xác thực
         if path == "/login1/":
             return self.get_response(request)
@@ -32,3 +28,4 @@ class DomainRestrictionMiddleware:
             return HttpResponseForbidden("Bạn cần đăng nhập để truy cập trang này!")
 
         return self.get_response(request)
+
